@@ -83,7 +83,7 @@ class MyDataset(Dataset):
     
     def __getitem__(self, index):
         # Загрузка изображения
-        img = Image.open(self.image)
+        img = Image.open(self.image).convert('RGB')
 
         # Применение преобразований, если они заданы
         if self.transform is not None:
@@ -105,7 +105,7 @@ def photo_predict(photo):
 
     train_path = "/media/tim/MSSD/DataSet/test"
     model_name = 'model'
-    epoch = 0
+    epoch = 4
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # print("Running eval")
@@ -118,29 +118,17 @@ def photo_predict(photo):
 
     centers_index.add(model.center_loss.centers.detach().cpu().numpy())
     
-    distance = 0.5
+    distance = 1
     result = 0
+    
     for x in dataloader: # x - tensor of image
-        print('-----------------------------/n/n/n/n')
-        print(x.shape)
-        print('-----------------------------/n/n/n/n')
         features, _ = model(x.to(device))
         for xx in features:
-            ###
-            # xx - 
-            # yy - y - class [0, 1]
-            ###
             d = centers_index.search(xx.detach().cpu().numpy().reshape(1, -1), 1)
 
-            if d[0][0] < distance:
+            print(d[0][0])
+            if d[0][0] > distance:
                 return "Landmark"
             else:
                 return "Non landmark"
-            ### Change if statement to check center distance 
-            # 
-            # if dd[0][0] < threshold_value:
-            #     nonLan += 1
-            # elif check_classes(int(dd[1][0]), yy):
-            #     correct += 1
-            
     return result
