@@ -1,0 +1,100 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: #333;  
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none; /* Убирает подчеркивание у ссылки */
+  color: white; /* Устанавливает цвет текста ссылки на белый */
+}
+
+.header {
+  margin: 0;
+  color: #fff;
+  border-bottom: 2px solid #fff;
+  text-align: center;
+  padding: 20px 0;
+}
+
+main {
+  margin: 0;
+  background-color: #333;
+  text-align: center;
+  color: #fff;
+  padding: 20px;
+  flex: 1; /* Занимает доступное пространство */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: darkgray;
+  color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+.result {
+  text-transform: uppercase; /* Преобразование текста в заглавные буквы */
+  font-size: 24px; /* Размер шрифта */
+}
+
+.result.text {
+  font-size: 32px; /* Размер шрифта */
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.form input[type="file"] {
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 2px solid #333;
+  border-radius: 10px; /* Закругление углов */
+  background-color: #f9f9f9;
+  color: #333;
+  font-size: 16px;
+  outline: none;
+}
+
+.form input[type="file"]:focus {
+  border-color: #555;
+}
+
+.form button[type="submit"] {
+  background-color: #333;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  border: 2px solid #fff;
+}
+
+.form button[type="submit"]:hover {
+  background-color: #fff;
+  color: #333;
+}
