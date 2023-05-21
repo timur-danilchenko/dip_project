@@ -30,7 +30,7 @@ class CenterLossClassifier(nn.Module):
     def __init__(self, train_dir):
         super(CenterLossClassifier, self).__init__()
         self.num_classes = len(os.listdir(train_dir))
-        
+                
         self.center_loss = CenterLoss(self.num_classes, feat_dim=512, use_gpu=True)
         self.optimizer_centloss = torch.optim.SGD(self.center_loss.parameters(), lr=0.5)
         
@@ -58,7 +58,7 @@ class CenterLossClassifier(nn.Module):
         pred = torch.cat(pred).cpu()
 
         for y, p in zip(ys, pred.cpu()):
-            correct[y.item()] = correct.get(y.item(), np.array([0, 0])) + np.array([y == p, 1])
+            correct[y.item()] = correct.get(y.item(), np.array([0, 0])) + np.array([y == p, 1]) 
         return accuracy_score(ys, pred), correct
         
     def confusion_matrix(self, dataloader):
@@ -93,6 +93,102 @@ class MyDataset(Dataset):
     
     def __len__(self):
         return 1
+
+def train_model(dataloaders, device, model, criterion, optimizer, state_path, model_name, scheduler=None, num_epochs=25, continue_train=False):
+    if continue_train and os.path.exists(state_path):
+        with open(state_path, 'rb') as f:
+            state_dict = pickle.load(f)
+        # print(state_dict)
+        train_loss = state_dict['loss']
+        val_loss = state_dict['val_losses']
+        accuracy = state_dict['accuracy']
+        start = state_dict['epoch']
+        model = load_model(model, model_name, start)
+        start += 1
+    else:
+        train_loss, val_loss, accuracy = [], [], []
+        start = 0
+    
+    for epoch in tqdm(range(start, num_epochs)):
+        train_loss.append(train_step(dataloaders, device, model, criterion, optimizer).cpu())
+        cur_val_loss, cur_acc = eval_step(dataloaders, device, model)
+        val_loss.append(cur_val_loss.cpu())
+        accuracy.append(cur_acc)
+        print(f'Accuracy is {cur_acc}')
+        
+        with open(state_path, 'wb') as f:
+            pickle.dump({
+                'loss': train_loss,
+                'val_losses': val_loss,
+                'epoch': epoch,
+                'accuracy': accuracy
+            }, f)
+        torch.save(model.state_dict(), os.path.join(f'models/{model_name}{epoch}.data'))
+    return train_loss, val_loss
+        
+def train_step(dataloaders, device, model, criterion, optimizer):
+    model.train()
+    total_loss = []
+    iteration = 0
+    for x, y in dataloaders['train']:
+        optimizer.zero_grad()
+        model.optimizer_centloss.zero_grad()
+
+        x, y = x.to(device), y.to(device)
+        features, output = model(x)
+        loss1 = criterion(output, y) 
+        loss2 = model.center_loss(features, y) * alpha
+        loss = loss1 + loss2
+        
+        total_loss.append(loss)
+        loss.backward()
+    
+        for param in model.center_loss.parameters():
+            param.grad.data *= (1./alpha)
+        model.optimizer_centloss.step()
+        optimizer.step()
+
+        iteration += 1
+        if iteration % 50 == 0:
+            print(f'after {iteration} loss is {loss1.item()} and {loss2.item()}')
+
+    model.check_predictions(dataloaders['train'])
+    return sum(total_loss) / len(total_loss)
+            
+def eval_step(dataloaders, device, model):
+    model.eval()
+    total_loss = []
+    ys = []
+    pred = []
+    for x, y in dataloaders['test']: 
+        with torch.no_grad():
+            x, y = x.to(device), y.to(device)
+            features, output = model(x)
+            loss = criterion(output, y) + model.center_loss(features, y) * alpha
+            total_loss.append(loss)
+            
+            pred.append(torch.argmax(output, dim=1))
+            ys.extend(y.cpu())
+            
+    return sum(total_loss) / len(total_loss), accuracy_score(ys, torch.cat(pred).cpu())
+
+def check_classes(a, b):
+    return datasets['train'].classes[a] == cleanTestDataset.classes[b]
+
+def run_train():
+
+    b = 64
+    train_again = True
+    train_path = "/content/drive/MyDrive/dataset/"
+    test_path = train_path
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    datasets, dataloaders = get_dataloaders(train_path, test_path, b)
+
+    model = CenterLossClassifier(train_path).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    train_loss, val_loss = train_model(dataloaders, device, model, criterion, optimizer, state_path, model_name, 
+                                        num_epochs=num_epochs, continue_train=train_again)
 
 def photo_predict(photo):
     transform = transforms.Compose([
