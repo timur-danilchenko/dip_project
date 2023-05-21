@@ -18,7 +18,9 @@ import neural.src
 @csrf_exempt
 def predict(request):
     if request.method == 'POST':
-        image_file = request.FILES.get('photo')     
+        image_file = request.FILES.get('photo')
+        if (image_file == None):
+            return render(request, 'templates/upload.html')
         result = neural.nets.center_loss.photo_predict(image_file)
-        return JsonResponse({'result': result})
-    return render(request, 'upload.html')
+        return render(request, 'templates/prediction.html', {'prediction': result})
+    return render(request, 'templates/upload.html')
